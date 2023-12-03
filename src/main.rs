@@ -1,15 +1,12 @@
+use anyhow::{Context, Result};
 use std::{
-    io::{self, Read},
     fs::File,
+    io::{self, Read},
     os::windows::io::AsRawHandle,
     path::PathBuf,
-    process::ExitCode,
-};
-use winapi::um::{
-    handleapi::SetHandleInformation,
-    winbase::STD_OUTPUT_HANDLE
 };
 use structopt::StructOpt;
+use winapi::um::{fileapi, handleapi, winbase};
 
 const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
 
@@ -18,58 +15,64 @@ const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
 #[structopt(name = "cat-win")]
 struct Args {
     #[structopt(parse(from_os_str))]
-    input_file: PathBuf,
+    input_files: Vec<PathBuf>,
 }
 
-fn main() -> ExitCode {
+fn main() -> Result<()> {
     let args = Args::from_args();
+    let arguments_list: Vec<String> = std::env::args().collect();
 
-    let file_path = args.input_file;
-
-    let file = match File::open(&file_path) {
-        Ok(file) => file,
-        Err(err) => {
-            eprintln!("Error opening file: {}", err);
-            return ExitCode::FAILURE;
-        }
-    };
-
-    let raw_handle = file.as_raw_handle();
-    if unsafe { SetHandleInformation(raw_handle as *mut _, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) } == 0 {
-        eprintln!("Error setting file handle to be inheritable");
-        return ExitCode::FAILURE;
+    // If no arguments are provided
+    if arguments_list.len() == 1 {
+        Args::clap().print_help()?;
+        println!();
+        anyhow::bail!("Please provide at least one argument.");
     }
 
-    let mut buffer = vec![0u8; 4096];
-    let mut reader = io::BufReader::new(file);
+    for file_path in &args.input_files {
+        let file = File::open(&file_path)
+            .with_context(|| format!("Error opening file: {}", file_path.display()))?;
 
-    let stdout_handle = unsafe { winapi::um::processenv::GetStdHandle(STD_OUTPUT_HANDLE) };
-
-    loop {
-        let bytes_read = match reader.read(&mut buffer) {
-            Ok(0) => break,
-            Ok(n) => n,
-            Err(err) => {
-                eprintln!("Error reading file: {}", err);
-                return ExitCode::FAILURE;
-            }
-        };
-
-        let mut written = 0;
+        let raw_handle = file.as_raw_handle();
         if unsafe {
-            winapi::um::fileapi::WriteFile(
-                stdout_handle,
-                buffer.as_ptr() as *const _,
-                bytes_read as u32,
-                &mut written,
-                std::ptr::null_mut(),
+            handleapi::SetHandleInformation(
+                raw_handle as *mut _,
+                HANDLE_FLAG_INHERIT,
+                HANDLE_FLAG_INHERIT,
             )
         } == 0
         {
-            eprintln!("Error writing to stdout");
-            return ExitCode::FAILURE;
+            anyhow::bail!("Error setting file handle to be inheritable");
+        }
+
+        let mut buffer = vec![0u8; 4096];
+        let mut reader = io::BufReader::new(file);
+
+        let stdout_handle =
+            unsafe { winapi::um::processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE) };
+
+        loop {
+            let bytes_read = match reader.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(n) => n,
+                Err(err) => anyhow::bail!("Error reading file: {}", err),
+            };
+
+            let mut written = 0;
+            if unsafe {
+                fileapi::WriteFile(
+                    stdout_handle,
+                    buffer.as_ptr() as *const _,
+                    bytes_read as u32,
+                    &mut written,
+                    std::ptr::null_mut(),
+                )
+            } == 0
+            {
+                anyhow::bail!("Error writing to stdout");
+            }
         }
     }
 
-    ExitCode::SUCCESS
+    Ok(())
 }
