@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 winapi = { version = "0.3", features = ["handleapi", "winbase", "fileapi", "processenv"] }
 structopt = "0.3"
+anyhow = "1.0"
