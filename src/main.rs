@@ -1,33 +1,24 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
+use clap::Parser;
 use std::{
     fs::File,
-    io::{self, Read},
+    io::{BufReader, Read},
     os::windows::io::AsRawHandle,
     path::PathBuf,
 };
-use structopt::StructOpt;
-use winapi::um::{fileapi, handleapi, winbase};
+use winapi::um::{fileapi, handleapi, processenv, winbase};
 
 const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
 
-/// A Windows port of the `cat` coreutils program.
-#[derive(StructOpt)]
-#[structopt(name = "cat-win")]
+/// wincat-rs: A Windows port of the `cat` coreutils program.
+#[derive(Parser)]
 struct Args {
-    #[structopt(parse(from_os_str))]
+    #[arg(name = "FILEs")]
     input_files: Vec<PathBuf>,
 }
 
 fn main() -> Result<()> {
-    let args = Args::from_args();
-    let arguments_list: Vec<String> = std::env::args().collect();
-
-    // If no arguments are provided
-    if arguments_list.len() == 1 {
-        Args::clap().print_help()?;
-        println!();
-        anyhow::bail!("Please provide at least one argument.");
-    }
+    let args = Args::parse();
 
     for file_path in &args.input_files {
         let file = File::open(&file_path)
@@ -42,20 +33,19 @@ fn main() -> Result<()> {
             )
         } == 0
         {
-            anyhow::bail!("Error setting file handle to be inheritable");
+            return Err(anyhow!("Error setting file handle to be inheritable"));
         }
 
         let mut buffer = vec![0u8; 4096];
-        let mut reader = io::BufReader::new(file);
+        let mut reader = BufReader::new(file);
 
-        let stdout_handle =
-            unsafe { winapi::um::processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE) };
+        let stdout_handle = unsafe { processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE) };
 
         loop {
             let bytes_read = match reader.read(&mut buffer) {
                 Ok(0) => break,
                 Ok(n) => n,
-                Err(err) => anyhow::bail!("Error reading file: {}", err),
+                Err(err) => return Err(anyhow!("Error reading file: {}", err)),
             };
 
             let mut written = 0;
@@ -69,7 +59,7 @@ fn main() -> Result<()> {
                 )
             } == 0
             {
-                anyhow::bail!("Error writing to stdout");
+                return Err(anyhow!("Error writing to stdout"));
             }
         }
     }
