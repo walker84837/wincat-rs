@@ -20,14 +20,16 @@ targets, hence why I set up the GitHub CI to use Windows.
 ## Usage
 
 ``` console
-.\cat-win.exe <FILEs>
+.\wincat.exe <FILEs>
 ```
+
   - `<FILEs>`: The files whose contents will be concatenated and written to
     stdout.
 
 ## Contributing
 
-Contributions are welcome\!
+Contributions are welcome! Here are the contributing guidelines (I will try to
+keep them as simple as possible):
 
   - Try to use the least amount of `unsafe` blocks. If that's needed make some
     safe wrapper function around it.
