@@ -8,8 +8,6 @@ use std::{
 };
 use winapi::um::{fileapi, handleapi, processenv, winbase};
 
-const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
-
 /// wincat-rs: A Windows port of the `cat` coreutils program.
 #[derive(Parser)]
 struct Args {
@@ -18,6 +16,8 @@ struct Args {
 }
 
 fn main() -> Result<()> {
+    const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
+
     let args = Args::parse();
 
     for file_path in &args.input_files {
