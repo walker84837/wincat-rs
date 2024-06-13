@@ -7,15 +7,12 @@ Unix-like systems.
 
 ## Installation
 
-No installation is required (except for the Rust compiler). Simply compile the
-provided Rust code using cargo:
+The only dependencies are the the Rust compiler and cargo. The binary
+is compiled only when using Windows targets:
 
 ``` console
 $ cargo build --release
 ```
-
-As far as I have seen, the code only compiles if you're building for Windows
-targets, hence why I set up the GitHub CI to use Windows.
 
 ## Usage
 
@@ -25,17 +22,17 @@ targets, hence why I set up the GitHub CI to use Windows.
 
   - `<FILEs>`: The files whose contents will be concatenated and written to
     stdout.
+  - `-v, --verbose`: Logs file operations and error handling where applicable.
 
 ## Contributing
 
-Contributions are welcome! Here are the contributing guidelines (I will try to
-keep them as simple as possible):
+Contributions are welcome! Here are the contributing guidelines:
 
   - Try to use the least amount of `unsafe` blocks. If that's needed make some
     safe wrapper function around it.
-  - I recommend you to use Windows functions (like `winapi` or
-    `std::os::windows`) if performance will be better. However, try to keep a
-    tradeoff between safety and using the Windows API.
+  - Since this repo is based around Windows, use functions from `winapi` when
+    applicable. However, try keeping a tradeoff between safety and using the
+    Windows API.
   - Prefer using the standard library over reinventing the wheel.
   - Format code with
     ``` console
@@ -43,7 +40,7 @@ keep them as simple as possible):
     ```
   - If you would like to make big changes (eg. changing libraries for
     checksums), open an issue, explaining what you'd like to change, the main
-    reasons as to why, and what is the difference between using it or not.
+    reasons as to why.
 
 ### Roadmap
 

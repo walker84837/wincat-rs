@@ -1,11 +1,25 @@
 [package]
-name = "wincat-rs"
+name = "wincat"
 version = "0.2.0"
 edition = "2021"
+license = "Apache-2.0 OR MIT"
+categories = ["command-line-utilities"]
+keywords = ["cli", "command-line"]
+readme = "README.md"
+repository = "https://github.com/walker84837/wincat-rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+debug = false
+
+[profile.release]
+strip = true
+lto = true
+overflow-checks = true
+panic = "abort"
 
 [dependencies]
-winapi = { version = "0.3", features = ["handleapi", "winbase", "fileapi", "processenv"] }
+winapi = { version = "0.3", features = ["errhandlingapi", "handleapi", "winbase", "fileapi", "processenv"] }
 clap = { version = "4.5.2", features = ["derive"] }
 anyhow = "1.0"
+log = "0.4.21"
+simple_logger = "5.0.0"

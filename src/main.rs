@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use std::{
     fs::File,
@@ -6,23 +6,33 @@ use std::{
     os::windows::io::AsRawHandle,
     path::PathBuf,
 };
-use winapi::um::{fileapi, handleapi, processenv, winbase};
+use winapi::um::{errhandlingapi::GetLastError, fileapi, handleapi, processenv, winbase};
+use log::info;
 
-/// wincat-rs: A Windows port of the `cat` coreutils program.
+/// wincat: A Windows port of the `cat` coreutils program.
 #[derive(Parser)]
+#[command(version, about)]
 struct Args {
-    #[arg(name = "FILEs")]
+    #[clap(name = "FILEs")]
     input_files: Vec<PathBuf>,
+
+    #[clap(short, long, help = "verbose mode")]
+    verbose: bool,
 }
 
 fn main() -> Result<()> {
     const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
-
     let args = Args::parse();
+
+    if args.verbose {
+        simple_logger::init().unwrap();
+    }
 
     for file_path in &args.input_files {
         let file = File::open(&file_path)
             .with_context(|| format!("Error opening file: {}", file_path.display()))?;
+
+        info!("Successfully opened file '{}'", &file_path.display());
 
         let raw_handle = file.as_raw_handle();
         if unsafe {
@@ -33,7 +43,9 @@ fn main() -> Result<()> {
             )
         } == 0
         {
-            return Err(anyhow!("Error setting file handle to be inheritable"));
+            bail!("Error setting file handle to be inheritable: {}", unsafe {
+                GetLastError()
+            });
         }
 
         let mut buffer = vec![0u8; 4096];
@@ -41,11 +53,13 @@ fn main() -> Result<()> {
 
         let stdout_handle = unsafe { processenv::GetStdHandle(winbase::STD_OUTPUT_HANDLE) };
 
+        info!("Opened handle to stdout");
+
         loop {
             let bytes_read = match reader.read(&mut buffer) {
                 Ok(0) => break,
                 Ok(n) => n,
-                Err(err) => return Err(anyhow!("Error reading file: {}", err)),
+                Err(err) => bail!("Error reading file: {}", err),
             };
 
             let mut written = 0;
@@ -59,7 +73,7 @@ fn main() -> Result<()> {
                 )
             } == 0
             {
-                return Err(anyhow!("Error writing to stdout"));
+                bail!("Error writing to stdout: {}", unsafe { GetLastError() });
             }
         }
     }
