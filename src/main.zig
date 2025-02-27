@@ -70,10 +70,11 @@ pub fn main() !void {
             }
 
             var written: u32 = 0;
-            const nullPointer: *anyopaque = null;
+            const offset: ?u64 = null;
 
-            if (win.kernel32.WriteFile(stdout_handle, &buffer, @intCast(bytes_read), &written, nullPointer) == 0) {
-                const err = win.kernel32.GetLastError();
+            const write_result = win.kernel32.WriteFile(stdout_handle, &buffer[0..bytes_read], offset, &written);
+            if (write_result.isError()) {
+                const err = write_result.unwrapErr();
                 std.debug.print("Error writing to stdout: {d}\n", .{err});
                 return error.WriteFileFailed;
             }
