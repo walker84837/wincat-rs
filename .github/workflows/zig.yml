@@ -1,0 +1,30 @@
+name: Build Wincat
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Zig
+      uses: goto-bus-stop/setup-zig@v2
+      with:
+        version: 0.13.0
+    
+    - name: Zig Version
+      run: zig version
+      
+    - name: Zig Build
+      run: zig build
+      
+    - name: Zig Test
+      run: zig build test
