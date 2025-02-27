@@ -70,7 +70,7 @@ pub fn main() !void {
             }
 
             var written: u32 = 0;
-            const nullPointer: *anyopaque = @ptrCast(null);
+            const nullPointer: *anyopaque = null;
 
             if (win.kernel32.WriteFile(stdout_handle, &buffer, @intCast(bytes_read), &written, nullPointer) == 0) {
                 const err = win.kernel32.GetLastError();
