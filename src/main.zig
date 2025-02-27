@@ -51,7 +51,7 @@ pub fn main() !void {
         }
 
         // Get stdout handle
-        const stdout_handle = win.kernel32.GetStdHandle(win.STD_OUTPUT_HANDLE);
+        const stdout_handle = win.GetStdHandle(win.STD_OUTPUT_HANDLE);
         if (verbose) {
             std.log.info("Opened handle to stdout", .{});
         }
@@ -72,7 +72,7 @@ pub fn main() !void {
             var written: u32 = 0;
             const offset: ?u64 = null;
 
-            const write_result = win.kernel32.WriteFile(stdout_handle, &buffer[0..bytes_read], offset, &written);
+            const write_result = win.WriteFile(stdout_handle, &buffer[0..bytes_read], offset, &written);
             if (write_result.isError()) {
                 const err = write_result.unwrapErr();
                 std.debug.print("Error writing to stdout: {d}\n", .{err});
