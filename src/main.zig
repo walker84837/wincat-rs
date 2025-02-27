@@ -43,7 +43,7 @@ pub fn main() !void {
         // Make file handle inheritable
         const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
         const handle = file.handle;
-        
+
         if (win.kernel32.SetHandleInformation(handle, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) == 0) {
             const err = win.kernel32.GetLastError();
             std.debug.print("Error setting file handle to be inheritable: {d}\n", .{err});
@@ -58,25 +58,21 @@ pub fn main() !void {
 
         // Read and write file contents
         var buffer: [4096]u8 = undefined;
-        
+
         while (true) {
             const bytes_read = file.read(&buffer) catch |err| {
                 std.debug.print("Error reading file: {s}\n", .{@errorName(err)});
                 return err;
             };
-            
+
             if (bytes_read == 0) {
                 break;
             }
-            
+
             var written: u32 = 0;
-            if (win.kernel32.WriteFile(
-                stdout_handle,
-                &buffer,
-                @intCast(bytes_read),
-                &written,
-                null,
-            ) == 0) {
+            const nullPointer: *anyopaque = @ptrCast(null);
+
+            if (win.kernel32.WriteFile(stdout_handle, &buffer, @intCast(bytes_read), &written, nullPointer) == 0) {
                 const err = win.kernel32.GetLastError();
                 std.debug.print("Error writing to stdout: {d}\n", .{err});
                 return error.WriteFileFailed;
